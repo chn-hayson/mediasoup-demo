@@ -1,0 +1,11 @@
+5a677bebc6107bd6ba0c594793764992  autogen.sh
+1798b66371e32f1de224acd25dc1c44c  ca.crt
+51c9c0ba45f2d8595d8a349a85dae81d  ca.csr
+a6f1564305e748578b0d16d515567216  ca.key
+0ff3a317485a23bcafd6d05b9a1b4e3e  ca.srl
+2b9b97289637f36e223da69ab19fe75f  client.crt
+6796fe5366be8b26db9d96d9c1c6c9e6  client.csr
+88c3fae1ff11d861ee8461cb89187abe  client.key
+d44fb442c9cf16e9595f21abd7319e22  server.crt
+9a6c438b763478f483814d0d7f35fbcc  server.csr
+ba0f7fce82c1b665230989b1b7f7211d  server.key
