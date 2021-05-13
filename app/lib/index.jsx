@@ -63,7 +63,7 @@ async function run()
 	logger.debug('run() [environment:%s]', process.env.NODE_ENV);
 
 	const urlParser = new UrlParse(window.location.href, true);
-	const peerId = randomString({ length: 8 }).toLowerCase();
+	const peerId = urlParser.query.peerId;
 	let roomId = urlParser.query.roomId;
 	let displayName =
 		urlParser.query.displayName || (cookiesManager.getUser() || {}).displayName;
@@ -104,6 +104,14 @@ async function run()
 		roomId = randomString({ length: 8 }).toLowerCase();
 
 		urlParser.query.roomId = roomId;
+		window.history.pushState('', '', urlParser.toString());
+	}
+
+	if (!peerId)
+	{
+		peerId = randomString({ length: 8 }).toLowerCase();
+
+		urlParser.query.peerId = peerId;
 		window.history.pushState('', '', urlParser.toString());
 	}
 
