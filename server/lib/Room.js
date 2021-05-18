@@ -788,7 +788,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is not already joined.
 					if (peer.data.joined)
-						throw new Error('Peer already joined');
+						throw new Error('成员已加入房间');
 
 					const {
 						displayName,
@@ -995,7 +995,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { transportId, kind, rtpParameters } = request.data;
 					let { appData } = request.data;
@@ -1071,7 +1071,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { producerId } = request.data;
 					const producer = peer.data.producers.get(producerId);
@@ -1093,7 +1093,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { producerId } = request.data;
 					const producer = peer.data.producers.get(producerId);
@@ -1112,7 +1112,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { producerId } = request.data;
 					const producer = peer.data.producers.get(producerId);
@@ -1131,7 +1131,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { consumerId } = request.data;
 					const consumer = peer.data.consumers.get(consumerId);
@@ -1150,7 +1150,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { consumerId } = request.data;
 					const consumer = peer.data.consumers.get(consumerId);
@@ -1169,7 +1169,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { consumerId, spatialLayer, temporalLayer } = request.data;
 					const consumer = peer.data.consumers.get(consumerId);
@@ -1188,7 +1188,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { consumerId, priority } = request.data;
 					const consumer = peer.data.consumers.get(consumerId);
@@ -1207,7 +1207,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { consumerId } = request.data;
 					const consumer = peer.data.consumers.get(consumerId);
@@ -1226,7 +1226,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const {
 						transportId,
@@ -1290,7 +1290,7 @@ class Room extends EventEmitter {
 				{
 					// Ensure the Peer is joined.
 					if (!peer.data.joined)
-						throw new Error('Peer not yet joined');
+						throw new Error('成员还未加入房间');
 
 					const { displayName } = request.data;
 					const oldDisplayName = peer.data.displayName;
