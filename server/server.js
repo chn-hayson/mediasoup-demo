@@ -162,7 +162,9 @@ async function createExpressApp() {
 	expressApp.all("*",
 		(req, res, next) => {
 			const accessToken = req.headers.accesstoken || '';
-			authentication(accessToken).then(() => {
+			authentication(accessToken).then((data) => {
+				req.category = data.appId;
+				req.peerId = accessToken;
 				next();
 			}).catch((err) => {
 				logger.warn('Express app %s', String(err));
@@ -172,20 +174,45 @@ async function createExpressApp() {
 		});
 
 	/**
-	 * For every API request, verify that the roomId in the path matches and
-	 * existing room.
+	 * For every API request, verify that the roomId in the path matches
 	 */
 	expressApp.param(
 		'roomId', (req, res, next, roomId) => {
 			// The room must exist for all API requests.
 			if (!rooms.has(roomId)) {
-				const error = new Error(`room with id "${roomId}" not found`);
+				const error = new Error(`指定的房间不存`);
 
 				error.status = 404;
 				throw error;
 			}
 
-			req.room = rooms.get(roomId);
+			const room = rooms.get(roomId);
+
+			// The room category must be peer's belong appId
+			if (room._category !== req.category) {
+				const error = new Error(`无权访问其他应用的房间信息`);
+
+				error.status = 405;
+				throw error;
+			}
+
+			req.room = room;
+
+			next();
+		});	
+
+	/**
+	 * For every API request, verify that the category in the path matches
+	 */
+	expressApp.param(
+		'category', (req, res, next, roomId) => {
+			// The room category must be peer's belong appId
+			if (category !== req.category) {
+				const error = new Error(`无权访问其他应用的房间信息`);
+
+				error.status = 405;
+				throw error;
+			}
 
 			next();
 		});
@@ -195,15 +222,17 @@ async function createExpressApp() {
 	 * the room.
 	 */
 	expressApp.get(
-		'/rooms/list', (req, res) => {
+		'/rooms/list/category/:category', (req, res) => {
 			const roomList = [];
-			for (let item of rooms.values()) {
-				roomList.push({
-					roomId: item._roomId,
-					peersCount: item._getJoinedPeers().length,
-					createTime: item._createTime
-				});
 
+			for (let item of rooms.values()) {
+				if (item._category === category) {
+					roomList.push({
+						roomId: item._roomId,
+						peersCount: item._getJoinedPeers().length,
+						createTime: item._createTime
+					});
+				}
 			}
 
 			res.status(200).send(roomList);
@@ -218,6 +247,30 @@ async function createExpressApp() {
 			const data = req.room.getRouterRtpCapabilities();
 
 			res.status(200).json(data);
+		});
+
+	/**
+	 * POST API to create a Broadcaster.
+	 */
+	expressApp.delete(
+		'/rooms/:roomId/close', async (req, res, next) => {
+			try {
+				const room = req.room;
+				const peer = room._protooRoom.getPeer(req.peerId);
+
+				if (!peer || !peer.data.administrator) {
+					const error = new Error(`指定的成员不存在或不为管理员`);
+
+					error.status = 405;
+					throw error;
+				} else {
+					room.close();
+					res.status(200).send(true);
+				}
+			}
+			catch (error) {
+				next(error);
+			}
 		});
 
 	/**
@@ -479,7 +532,7 @@ async function authentication(peerId) {
 			if (error || response.statusCode != 200 || body.status == "error") {
 				reject("用户身份认证失败：" + body.message);
 			} else {
-				resolve();
+				resolve(JSON.parse(body.data));
 			}
 		});
 	})
@@ -508,7 +561,7 @@ async function runProtooWebSocketServer() {
 		const peerId = u.query['peerId'];
 
 		// peer authentication
-		authentication(peerId).then(() => {
+		authentication(peerId).then((data) => {
 			if (!roomId || !peerId) {
 				reject(400, 'Connection request without roomId and/or peerId');
 
@@ -523,7 +576,7 @@ async function runProtooWebSocketServer() {
 			// the same time with the same roomId create two separate rooms with same
 			// roomId.
 			queue.push(async () => {
-				const room = await getOrCreateRoom({ roomId });
+				const room = await getOrCreateRoom({ roomId, category: data.appId });
 
 				// Accept the protoo WebSocket connection.
 				const protooWebSocketTransport = accept();
@@ -558,7 +611,7 @@ function getMediasoupWorker() {
 /**
  * Get a Room instance (or create one if it does not exist).
  */
-async function getOrCreateRoom({ roomId }) {
+async function getOrCreateRoom({ roomId, category }) {
 	let room = rooms.get(roomId);
 
 	// If the Room does not exist create a new one.
@@ -567,10 +620,14 @@ async function getOrCreateRoom({ roomId }) {
 		logger.info('creating a new Room [roomId:%s]', roomId);
 
 		const mediasoupWorker = getMediasoupWorker();
-		room = await Room.create({ mediasoupWorker, roomId });
+		room = await Room.create({ mediasoupWorker, roomId, category });
 
 		rooms.set(roomId, room);
 		room.on('close', () => rooms.delete(roomId));
+	} else {
+		if (room._category != category) {
+			throw new Error('加入房间失败，成员所属应用与房间所属应用不匹配');
+		}
 	}
 
 	return room;

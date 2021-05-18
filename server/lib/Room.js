@@ -24,7 +24,7 @@ class Room extends EventEmitter {
 	 *   mediasoup Router must be created.
 	 * @param {String} roomId - Id of the Room instance.
 	 */
-	static async create({ mediasoupWorker, roomId }) {
+	static async create({ mediasoupWorker, roomId, category }) {
 		logger.info('create() [roomId:%s]', roomId);
 
 		// Create a protoo Room instance.
@@ -49,6 +49,7 @@ class Room extends EventEmitter {
 		return new Room(
 			{
 				roomId,
+				category,
 				protooRoom,
 				mediasoupRouter,
 				audioLevelObserver,
@@ -56,13 +57,17 @@ class Room extends EventEmitter {
 			});
 	}
 
-	constructor({ roomId, protooRoom, mediasoupRouter, audioLevelObserver, bot }) {
+	constructor({ roomId, category, protooRoom, mediasoupRouter, audioLevelObserver, bot }) {
 		super();
 		this.setMaxListeners(Infinity);
 
 		// Room id.
 		// @type {String}
 		this._roomId = roomId;
+
+		// Room category
+		// @type {String}
+		this._category = category;
 
 		// Room create time.
 		// @type {String}
@@ -184,6 +189,7 @@ class Room extends EventEmitter {
 		// Not joined after a custom protoo 'join' request is later received.
 		peer.data.consume = consume;
 		peer.data.joined = false;
+		peer.data.administrator = false;
 		peer.data.displayName = undefined;
 		peer.data.device = undefined;
 		peer.data.rtpCapabilities = undefined;
@@ -218,8 +224,15 @@ class Room extends EventEmitter {
 
 			// If the Peer was joined, notify all Peers.
 			if (peer.data.joined) {
-				for (const otherPeer of this._getJoinedPeers({ excludePeer: peer })) {
-					otherPeer.notify('peerClosed', { peerId: peer.id })
+				const otherPeers = this._getJoinedPeers({ excludePeer: peer });
+
+				// 若当前退出的成员是管理员，则将管理权限移交给顺位第一的成员
+				if (peer.data.administrator && otherPeers.length > 0) {
+					otherPeers[0].data.administrator = true;
+				}
+
+				for (otherPeer of otherPeers) {
+					otherPeer.notify('peerClosed', { peerId: peer.id, administratorPeerId: this._getAdministratorPeer().id})
 						.catch(() => { });
 				}
 			}
@@ -783,6 +796,11 @@ class Room extends EventEmitter {
 						rtpCapabilities,
 						sctpCapabilities
 					} = request.data;
+
+					// 第一个加入房间的成员默认为房间管理员
+					if (this._getJoinedPeers().length === 0) {
+						this.peer.data.administrator = true;
+					}
 
 					// Store client data into the protoo Peer data object.
 					peer.data.joined = true;
@@ -1453,6 +1471,14 @@ class Room extends EventEmitter {
 	_getJoinedPeers({ excludePeer = undefined } = {}) {
 		return this._protooRoom.peers
 			.filter((peer) => peer.data.joined && peer !== excludePeer);
+	}
+
+	/**
+	 * Helper to get the room administrator.
+	 */
+	_getAdministratorPeer() {
+		return this._protooRoom.peers
+			.filter((peer) => peer.data.joined && peer.data.administrator)[0];
 	}
 
 	/**
