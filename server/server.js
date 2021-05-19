@@ -199,13 +199,13 @@ async function createExpressApp() {
 			req.room = room;
 
 			next();
-		});	
+		});
 
 	/**
 	 * For every API request, verify that the category in the path matches
 	 */
 	expressApp.param(
-		'category', (req, res, next, roomId) => {
+		'category', (req, res, next, category) => {
 			// The room category must be peer's belong appId
 			if (category !== req.category) {
 				const error = new Error(`无权访问其他应用的房间信息`);
@@ -224,6 +224,8 @@ async function createExpressApp() {
 	expressApp.get(
 		'/rooms/list/category/:category', (req, res) => {
 			const roomList = [];
+
+			const { category } = req.params;
 
 			for (let item of rooms.values()) {
 				if (item._category === category) {
@@ -250,26 +252,18 @@ async function createExpressApp() {
 		});
 
 	/**
-	 * POST API to create a Broadcaster.
+	 * POST API to close room.
 	 */
 	expressApp.delete(
-		'/rooms/:roomId/close', async (req, res, next) => {
-			try {
-				const room = req.room;
-				const peer = room._protooRoom.getPeer(req.peerId);
+		'/rooms/:roomId/close', (req, res) => {
+			const room = req.room;
+			const peer = room._protooRoom.getPeer(req.peerId);
 
-				if (!peer || !peer.data.administrator) {
-					const error = new Error(`指定的成员不存在或不为管理员`);
-
-					error.status = 405;
-					throw error;
-				} else {
-					room.close();
-					res.status(200).send(true);
-				}
-			}
-			catch (error) {
-				next(error);
+			if (!peer || !peer.data.administrator) {
+				res.status(405).send(String(`指定的成员不存在或不为管理员`));
+			} else {
+				room.close();
+				res.status(200).send(true);
 			}
 		});
 
@@ -532,7 +526,7 @@ async function authentication(peerId) {
 			if (error || response.statusCode != 200 || body.status == "error") {
 				reject("用户身份认证失败：" + body.message);
 			} else {
-				resolve(JSON.parse(body.data));
+				resolve(body.data);
 			}
 		});
 	})
@@ -617,7 +611,7 @@ async function getOrCreateRoom({ roomId, category }) {
 	// If the Room does not exist create a new one.
 	if (!room) {
 
-		logger.info('creating a new Room [roomId:%s]', roomId);
+		logger.info('creating a new Room [roomId:%s] [roomCategory:%s]', roomId, category);
 
 		const mediasoupWorker = getMediasoupWorker();
 		room = await Room.create({ mediasoupWorker, roomId, category });

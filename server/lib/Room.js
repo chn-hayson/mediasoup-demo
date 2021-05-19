@@ -799,7 +799,7 @@ class Room extends EventEmitter {
 
 					// 第一个加入房间的成员默认为房间管理员
 					if (this._getJoinedPeers().length === 0) {
-						this.peer.data.administrator = true;
+						peer.data.administrator = true;
 					}
 
 					// Store client data into the protoo Peer data object.
