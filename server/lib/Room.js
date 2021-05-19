@@ -823,6 +823,7 @@ class Room extends EventEmitter {
 						.filter((joinedPeer) => joinedPeer.id !== peer.id)
 						.map((joinedPeer) => ({
 							id: joinedPeer.id,
+							administrator: joinedPeer.data.administrator,
 							displayName: joinedPeer.data.displayName,
 							device: joinedPeer.data.device
 						}));
