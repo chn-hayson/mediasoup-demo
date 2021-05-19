@@ -232,7 +232,7 @@ class Room extends EventEmitter {
 				}
 
 				for (otherPeer of otherPeers) {
-					otherPeer.notify('peerClosed', { peerId: peer.id, administratorPeerId: this._getAdministratorPeer().id})
+					otherPeer.notify('peerClosed', { peerId: peer.id, administratorPeerId: this._getAdministratorPeer().id })
 						.catch(() => { });
 				}
 			}
@@ -818,9 +818,8 @@ class Room extends EventEmitter {
 							...this._broadcasters.values()
 						];
 
-					// Reply now the request with the list of joined peers (all but the new one).
+					// Reply now the request with the list of joined peers (included the new one).
 					const peerInfos = joinedPeers
-						.filter((joinedPeer) => joinedPeer.id !== peer.id)
 						.map((joinedPeer) => ({
 							id: joinedPeer.id,
 							administrator: joinedPeer.data.administrator,
@@ -872,6 +871,7 @@ class Room extends EventEmitter {
 							'newPeer',
 							{
 								id: peer.id,
+								administrator: peer.data.administrator,
 								displayName: peer.data.displayName,
 								device: peer.data.device
 							})
