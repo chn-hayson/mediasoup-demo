@@ -28,6 +28,7 @@ Date.prototype.format = function (fmt) {
 	return fmt;
 }
 
+const baseResponse = require('./lib/BaseResponse');
 const config = require('./config');
 const urlFactory = require('./urlFactory');
 
@@ -163,13 +164,13 @@ async function createExpressApp() {
 		(req, res, next) => {
 			const accessToken = req.headers.accesstoken || '';
 			authentication(accessToken).then((data) => {
+				req.peerId = data.id;
 				req.category = data.appId;
-				req.peerId = accessToken;
 				next();
 			}).catch((err) => {
 				logger.warn('Express app %s', String(err));
 
-				res.status(401).send(String(err));
+				res.send(baseResponse.failed(500, String(err)));
 			});
 		});
 
@@ -181,8 +182,6 @@ async function createExpressApp() {
 			// The room must exist for all API requests.
 			if (!rooms.has(roomId)) {
 				const error = new Error(`指定的房间不存`);
-
-				error.status = 404;
 				throw error;
 			}
 
@@ -191,8 +190,6 @@ async function createExpressApp() {
 			// The room category must be peer's belong appId
 			if (room._category !== req.category) {
 				const error = new Error(`无权访问其他应用的房间信息`);
-
-				error.status = 455;
 				throw error;
 			}
 
@@ -209,8 +206,6 @@ async function createExpressApp() {
 			// The room category must be peer's belong appId
 			if (category !== req.category) {
 				const error = new Error(`无权访问其他应用的房间信息`);
-
-				error.status = 455;
 				throw error;
 			}
 
@@ -237,7 +232,7 @@ async function createExpressApp() {
 				}
 			}
 
-			res.status(200).send(roomList);
+			res.status(200).send(baseResponse.success(roomList));
 		});
 
 	/**
@@ -248,7 +243,7 @@ async function createExpressApp() {
 		'/rooms/:roomId', (req, res) => {
 			const data = req.room.getRouterRtpCapabilities();
 
-			res.status(200).json(data);
+			res.status(200).json(baseResponse.success(data));
 		});
 
 	/**
@@ -262,10 +257,11 @@ async function createExpressApp() {
 			const peer = room._protooRoom.getPeer(req.peerId);
 
 			if (!peer || !peer.data.administrator) {
-				res.status(455).send(String(`操作用户身份认证失败或不是管理员`));
+				const error = new Error(`操作用户身份认证失败或不是管理员`);
+				throw error;
 			} else {
 				room.close();
-				res.status(200).send(true);
+				res.status(200).json(baseResponse.success(true));
 			}
 		});
 
@@ -281,20 +277,23 @@ async function createExpressApp() {
 			const peer = room._protooRoom.getPeer(req.peerId);
 
 			if (!peer || !peer.data.administrator) {
-				res.status(455).send(String(`操作用户身份认证失败或不是管理员`));
+				const error = new Error(`操作用户身份认证失败或不是管理员`);
+				throw error;
 			} else {
 				const toClosePeer = room._protooRoom.getPeer(toClosePeerId);
 				if (!toClosePeer) {
-					res.status(404).send(String(`指定移除的成员不存在`));
+					const error = new Error(`指定移除的成员不存在`);
+					throw error;
 				} else {
 					if (toClosePeer.data.administrator) {
-						res.status(455).send(String(`指定移除的成员不能是管理员`));
+						const error = new Error(`指定移除的成员不能是管理员`);
+						throw error;
 					} else {
 						toClosePeer.notify('peerRemoved')
 							.catch(() => { });
 
 						toClosePeer.close();
-						res.status(200).send(true);
+						res.status(200).json(baseResponse.success(true));
 					}
 				}
 			}
@@ -321,7 +320,7 @@ async function createExpressApp() {
 						rtpCapabilities
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -337,7 +336,7 @@ async function createExpressApp() {
 
 			req.room.deleteBroadcaster({ broadcasterId });
 
-			res.status(200).send('broadcaster deleted');
+			res.status(200).send(baseResponse.success('broadcaster deleted'));
 		});
 
 	/**
@@ -362,7 +361,7 @@ async function createExpressApp() {
 						sctpCapabilities
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -387,7 +386,7 @@ async function createExpressApp() {
 						dtlsParameters
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -415,7 +414,7 @@ async function createExpressApp() {
 						rtpParameters
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -442,7 +441,7 @@ async function createExpressApp() {
 						producerId
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -469,7 +468,7 @@ async function createExpressApp() {
 						dataProducerId
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -497,7 +496,7 @@ async function createExpressApp() {
 						appData
 					});
 
-				res.status(200).json(data);
+				res.status(200).json(baseResponse.success(data));
 			}
 			catch (error) {
 				next(error);
@@ -514,8 +513,7 @@ async function createExpressApp() {
 
 				error.status = error.status || (error.name === 'TypeError' ? 400 : 500);
 
-				res.statusMessage = error.message;
-				res.status(error.status).send(String(error));
+				res.send(baseResponse.failed(error.status, String(error)));
 			}
 			else {
 				next();
@@ -545,13 +543,13 @@ async function runHttpsServer() {
 	});
 }
 
-async function authentication(peerId) {
+async function authentication(accessToken) {
 	return new Promise(async (resolve, reject) => {
 		let url = await urlFactory.getAuthenticationUrl();
 		var options = {
 			url: url,
 			headers: {
-				accessToken: peerId
+				accessToken: accessToken
 			},
 		};
 		request.post(options, function (error, response, body) {
@@ -585,12 +583,23 @@ async function runProtooWebSocketServer() {
 		// The client indicates the roomId and peerId in the URL query.
 		const u = url.parse(info.request.url, true);
 		const roomId = u.query['roomId'];
-		const peerId = u.query['peerId'];
+		const accessToken = u.query['accessToken'];
 
 		// peer authentication
-		authentication(peerId).then((data) => {
+		authentication(accessToken).then((data) => {
+			const peerId = data.id;
+
+			// 判断当前用户是否已加入房间
+			for (const room of rooms.values()) {
+				for (const joinedPeer of room._getJoinedPeers()) {
+					if (joinedPeer.id === peerId) {
+						reject(400, '当前成员已加入其他房间');
+					}
+				}
+			}
+
 			if (!roomId || !peerId) {
-				reject(400, 'Connection request without roomId and/or peerId');
+				reject(400, '无效的房间号或成员信息');
 
 				return;
 			}
@@ -617,7 +626,7 @@ async function runProtooWebSocketServer() {
 		}).catch((err) => {
 			logger.error(err);
 
-			reject(401, err);
+			reject(400, err);
 			return;
 		})
 	});
