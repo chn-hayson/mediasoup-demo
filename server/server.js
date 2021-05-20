@@ -276,7 +276,7 @@ async function createExpressApp() {
 		'/rooms/:roomId/peers/:toClosePeerId/close', (req, res) => {
 			const { toClosePeerId } = req.params;
 			logger.info(`peer close [peerId:%s]`, toClosePeerId);
-			
+
 			const room = req.room;
 			const peer = room._protooRoom.getPeer(req.peerId);
 
@@ -290,6 +290,9 @@ async function createExpressApp() {
 					if (toClosePeer.data.administrator) {
 						res.status(455).send(String(`指定移除的成员不能是管理员`));
 					} else {
+						toClosePeer.notify('peerRemoved')
+							.catch(() => { });
+
 						toClosePeer.close();
 						res.status(200).send(true);
 					}

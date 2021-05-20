@@ -125,6 +125,19 @@ class Room extends EventEmitter {
 	close() {
 		logger.debug('close()');
 
+		if (this._closed)
+			return;
+
+		logger.debug('protoo Room "close" event [roomId:%s]', this.id);
+
+
+		const joinPeers = this._getJoinedPeers();
+
+		for (const joinPeer of joinPeers) {
+			joinPeer.notify('roomClosed')
+				.catch(() => { });
+		}
+
 		this._closed = true;
 
 		// Close the protoo Room.
