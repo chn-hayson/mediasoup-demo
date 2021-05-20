@@ -252,7 +252,7 @@ async function createExpressApp() {
 		});
 
 	/**
-	 * POST API to close room.
+	 * DELETE API to close room.
 	 */
 	expressApp.delete(
 		'/rooms/:roomId/close', (req, res) => {
@@ -260,10 +260,36 @@ async function createExpressApp() {
 			const peer = room._protooRoom.getPeer(req.peerId);
 
 			if (!peer || !peer.data.administrator) {
-				res.status(405).send(String(`指定的成员不存在或不为管理员`));
+				res.status(405).send(String(`操作用户身份认证失败或不为管理员`));
 			} else {
 				room.close();
 				res.status(200).send(true);
+			}
+		});
+
+	/**
+	 * DELETE API to close peer.
+	 */
+	expressApp.delete(
+		'/rooms/:roomId/peers/:toClosePeerId/close', (req, res) => {
+			const { toClosePeerId } = req.params;
+			const room = req.room;
+			const peer = room._protooRoom.getPeer(req.peerId);
+
+			if (!peer || !peer.data.administrator) {
+				res.status(405).send(String(`操作用户身份认证失败或不是管理员`));
+			} else {
+				const toClosePeer = room._protooRoom.getPeer(toClosePeerId);
+				if (!toClosePeer) {
+					res.status(404).send(String(`指定移除的成员不存在`));
+				} else {
+					if (toClosePeer.data.administrator) {
+						res.status(405).send(String(`指定移除的成员不能是管理员`));
+					} else {
+						toClosePeer.close();
+						res.status(200).send(true);
+					}
+				}
 			}
 		});
 
