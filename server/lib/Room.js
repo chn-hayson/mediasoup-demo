@@ -231,7 +231,7 @@ class Room extends EventEmitter {
 					otherPeers[0].data.administrator = true;
 				}
 
-				for (otherPeer of otherPeers) {
+				for (const otherPeer of otherPeers) {
 					otherPeer.notify('peerClosed', { peerId: peer.id, administratorPeerId: this._getAdministratorPeer().id })
 						.catch(() => { });
 				}

@@ -192,7 +192,7 @@ async function createExpressApp() {
 			if (room._category !== req.category) {
 				const error = new Error(`无权访问其他应用的房间信息`);
 
-				error.status = 405;
+				error.status = 455;
 				throw error;
 			}
 
@@ -210,7 +210,7 @@ async function createExpressApp() {
 			if (category !== req.category) {
 				const error = new Error(`无权访问其他应用的房间信息`);
 
-				error.status = 405;
+				error.status = 455;
 				throw error;
 			}
 
@@ -254,13 +254,15 @@ async function createExpressApp() {
 	/**
 	 * DELETE API to close room.
 	 */
-	expressApp.delete(
+	expressApp.get(
 		'/rooms/:roomId/close', (req, res) => {
 			const room = req.room;
+			logger.info(`room close [roomId:%s]`, room.id);
+
 			const peer = room._protooRoom.getPeer(req.peerId);
 
 			if (!peer || !peer.data.administrator) {
-				res.status(405).send(String(`操作用户身份认证失败或不为管理员`));
+				res.status(455).send(String(`操作用户身份认证失败或不是管理员`));
 			} else {
 				room.close();
 				res.status(200).send(true);
@@ -270,21 +272,23 @@ async function createExpressApp() {
 	/**
 	 * DELETE API to close peer.
 	 */
-	expressApp.delete(
+	expressApp.get(
 		'/rooms/:roomId/peers/:toClosePeerId/close', (req, res) => {
 			const { toClosePeerId } = req.params;
+			logger.info(`peer close [peerId:%s]`, toClosePeerId);
+			
 			const room = req.room;
 			const peer = room._protooRoom.getPeer(req.peerId);
 
 			if (!peer || !peer.data.administrator) {
-				res.status(405).send(String(`操作用户身份认证失败或不是管理员`));
+				res.status(455).send(String(`操作用户身份认证失败或不是管理员`));
 			} else {
 				const toClosePeer = room._protooRoom.getPeer(toClosePeerId);
 				if (!toClosePeer) {
 					res.status(404).send(String(`指定移除的成员不存在`));
 				} else {
 					if (toClosePeer.data.administrator) {
-						res.status(405).send(String(`指定移除的成员不能是管理员`));
+						res.status(455).send(String(`指定移除的成员不能是管理员`));
 					} else {
 						toClosePeer.close();
 						res.status(200).send(true);
@@ -550,7 +554,7 @@ async function authentication(peerId) {
 		request.post(options, function (error, response, body) {
 			body = JSON.parse(body);
 			if (error || response.statusCode != 200 || body.status == "error") {
-				reject("用户身份认证失败：" + body.message);
+				reject("用户身份认证失败，请重试");
 			} else {
 				resolve(body.data);
 			}
