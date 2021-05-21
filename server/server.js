@@ -589,15 +589,6 @@ async function runProtooWebSocketServer() {
 		authentication(accessToken).then((data) => {
 			const peerId = data.id;
 
-			// 判断当前用户是否已加入房间
-			for (const room of rooms.values()) {
-				for (const joinedPeer of room._getJoinedPeers()) {
-					if (joinedPeer.id === peerId) {
-						reject(400, '当前成员已加入其他房间');
-					}
-				}
-			}
-
 			if (!roomId || !peerId) {
 				reject(400, '无效的房间号或成员信息');
 
@@ -617,6 +608,19 @@ async function runProtooWebSocketServer() {
 				// Accept the protoo WebSocket connection.
 				const protooWebSocketTransport = accept();
 
+				// 根据peerId在获取房间之前检查当前成员状态
+				const peerState = checkPeerState({ peerId });
+				if (peerState.joined) {
+					let tmpPeer = room._protooRoom.createPeer('tmpPeer' + peerId, protooWebSocketTransport);
+
+					tmpPeer.notify('peerJoined', { currentRoom: peerState.roomId === roomId ? true : false })
+						.catch(() => { });
+
+					tmpPeer.close();
+
+					return;
+				}
+
 				room.handleProtooConnection({ peerId, protooWebSocketTransport });
 			}).catch((error) => {
 				logger.error('room creation or room joining failed:%o', error);
@@ -627,9 +631,27 @@ async function runProtooWebSocketServer() {
 			logger.error(err);
 
 			reject(400, err);
+
 			return;
 		})
 	});
+}
+
+function checkPeerState({ peerId }) {
+	let peerState = { joined: false };
+
+	// 判断是否已加入房间
+	for (const room of rooms.values()) {
+		for (const joinedPeer of room._getJoinedPeers()) {
+			if (joinedPeer.id === peerId) {
+				peerState.joined = true;
+				peerState.roomId = room._roomId;
+				break;
+			}
+		}
+	}
+
+	return peerState;
 }
 
 /**
