@@ -583,6 +583,8 @@ async function runProtooWebSocketServer() {
 		// The client indicates the roomId and peerId in the URL query.
 		const u = url.parse(info.request.url, true);
 		const roomId = u.query['roomId'];
+		// connection mode, 0=>create room , 1=>join room
+		const conMode = u.query['conMode'];
 		const accessToken = u.query['accessToken'];
 
 		// peer authentication
@@ -603,7 +605,7 @@ async function runProtooWebSocketServer() {
 			// the same time with the same roomId create two separate rooms with same
 			// roomId.
 			queue.push(async () => {
-				const room = await getOrCreateRoom({ roomId, category: data.appId });
+				const room = await getOrCreateRoom({ roomId, conMode, category: data.appId });
 
 				// Accept the protoo WebSocket connection.
 				const protooWebSocketTransport = accept();
@@ -669,12 +671,26 @@ function getMediasoupWorker() {
 /**
  * Get a Room instance (or create one if it does not exist).
  */
-async function getOrCreateRoom({ roomId, category }) {
+async function getOrCreateRoom({ roomId, conMode, category }) {
+	if (conMode == null) {
+		throw new Error('连接模式不合法，请检查后重试');
+	}
+
+	// validate roomId
+	if (!roomId) {
+		throw new Error('房间号不能为空');	
+	}
+
+	// roomId is number and length is 6
+	if (!/^\d{6}$/.test(roomId)) {
+		throw new Error('房间号不合法，请检查后重试');
+	}
+
 	let room = rooms.get(roomId);
 
 	// If the Room does not exist create a new one.
-	if (!room) {
-
+	// connection mode, 0=>create room , 1=>join room
+	if (conMode === 0 && !room) {
 		logger.info('creating a new Room [roomId:%s] [roomCategory:%s]', roomId, category);
 
 		const mediasoupWorker = getMediasoupWorker();
@@ -682,10 +698,14 @@ async function getOrCreateRoom({ roomId, category }) {
 
 		rooms.set(roomId, room);
 		room.on('close', () => rooms.delete(roomId));
-	} else {
-		if (room._category != category) {
-			throw new Error('加入房间失败，成员所属应用与房间所属应用不匹配');
-		}
+	}
+
+	if (conMode === 1 && !room) {
+		throw new Error('加入房间不存在，请检查后重试');
+	}
+
+	if (room._category != category) {
+		throw new Error('加入房间失败，成员所属应用与房间所属应用不匹配');
 	}
 
 	return room;

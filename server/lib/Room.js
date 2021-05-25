@@ -937,24 +937,24 @@ class Room extends EventEmitter {
 
 					// NOTE: For testing.
 					// await transport.enableTraceEvent([ 'probation', 'bwe' ]);
-					await transport.enableTraceEvent(['bwe']);
+					// await transport.enableTraceEvent(['bwe']);
 
-					transport.on('trace', (trace) => {
-						logger.debug(
-							'transport "trace" event [transportId:%s, trace.type:%s, trace:%o]',
-							transport.id, trace.type, trace);
+					// transport.on('trace', (trace) => {
+					// 	logger.debug(
+					// 		'transport "trace" event [transportId:%s, trace.type:%s, trace:%o]',
+					// 		transport.id, trace.type, trace);
 
-						if (trace.type === 'bwe' && trace.direction === 'out') {
-							peer.notify(
-								'downlinkBwe',
-								{
-									desiredBitrate: trace.info.desiredBitrate,
-									effectiveDesiredBitrate: trace.info.effectiveDesiredBitrate,
-									availableBitrate: trace.info.availableBitrate
-								})
-								.catch(() => { });
-						}
-					});
+					// 	if (trace.type === 'bwe' && trace.direction === 'out') {
+					// 		peer.notify(
+					// 			'downlinkBwe',
+					// 			{
+					// 				desiredBitrate: trace.info.desiredBitrate,
+					// 				effectiveDesiredBitrate: trace.info.effectiveDesiredBitrate,
+					// 				availableBitrate: trace.info.availableBitrate
+					// 			})
+					// 			.catch(() => { });
+					// 	}
+					// });
 
 					// Store the WebRtcTransport into the protoo Peer data Object.
 					peer.data.transports.set(transport.id, transport);
