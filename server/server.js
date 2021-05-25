@@ -591,12 +591,6 @@ async function runProtooWebSocketServer() {
 		authentication(accessToken).then((data) => {
 			const peerId = data.id;
 
-			if (!roomId || !peerId) {
-				reject(400, '无效的房间号或成员信息');
-
-				return;
-			}
-
 			logger.info(
 				'protoo connection request [roomId:%s, peerId:%s, address:%s, origin:%s]',
 				roomId, peerId, info.socket.remoteAddress, info.origin);
@@ -605,30 +599,73 @@ async function runProtooWebSocketServer() {
 			// the same time with the same roomId create two separate rooms with same
 			// roomId.
 			queue.push(async () => {
-				const room = await getOrCreateRoom({ roomId, conMode, category: data.appId });
+				try {
+					const room = await getOrCreateRoom({ roomId, category: data.appId });
 
-				// Accept the protoo WebSocket connection.
-				const protooWebSocketTransport = accept();
+					// Accept the protoo WebSocket connection.
+					const protooWebSocketTransport = accept();
+					
+					let conError;
 
-				// 根据peerId在获取房间之前检查当前成员状态
-				const peerState = checkPeerState({ peerId });
-				if (peerState.joined) {
-					let tmpPeer = room._protooRoom.createPeer('tmpPeer' + peerId, protooWebSocketTransport);
+					if (conMode == null) {
+						logger.error('连接模式不合法，请检查后重试');
 
-					tmpPeer.notify('peerJoined', { currentRoom: peerState.roomId === roomId ? true : false })
-						.catch(() => { });
+						conError = '连接模式不合法，请检查后重试';
+					}
 
-					tmpPeer.close();
+					if (conMode === 0 && room._getJoinedPeers().length !== 0) {
+						logger.error('房间号已被占用，新建房间失败');
+
+						conError = '房间号已被占用，新建房间失败';
+					}
+
+					if (conMode === 1 && room._getJoinedPeers().length === 0) {
+						logger.error('房间号无效，加入房间失败');
+
+						conError = '房间号无效，加入房间失败';
+					}
+
+					// validate roomId
+					if (!roomId) {
+						logger.error('房间号不能为空');
+
+						conError = '房间号不能为空';
+					}
+
+					// roomId is number and length is 6
+					if (!/^\d{6}$/.test(roomId)) {
+						logger.error('房间号不合法，请检查后重试');
+
+						conError = '房间号不合法，请检查后重试';
+					}
+
+					if (room._category != data.appId) {
+						logger.error('加入房间失败，成员所属应用与房间所属应用不匹配');
+
+						conError = '加入房间失败，成员所属应用与房间所属应用不匹配';
+					}
+
+					// get peer current state
+					const peerState = checkPeerState({ peerId });
+					if (peerState.joined) {
+						conError = peerState.roomId === roomId ? '已加入当前房间' : '已加入其他房间';
+					}
+
+					if (conError) {
+						conErrorHandler(protooWebSocketTransport, room, peerId, conError);
+
+						return;
+					}
+
+					room.handleProtooConnection({ peerId, protooWebSocketTransport });
+				} catch (err) {
+					logger.error(err);
+
+					reject(400, err);
 
 					return;
 				}
-
-				room.handleProtooConnection({ peerId, protooWebSocketTransport });
-			}).catch((error) => {
-				logger.error('room creation or room joining failed:%o', error);
-
-				reject(error);
-			});
+			})
 		}).catch((err) => {
 			logger.error(err);
 
@@ -637,6 +674,15 @@ async function runProtooWebSocketServer() {
 			return;
 		})
 	});
+}
+
+function conErrorHandler(protooWebSocketTransport, room, peerId, err) {
+	let tmpPeer = room._protooRoom.createPeer('tmpPeer' + peerId, protooWebSocketTransport);
+
+	tmpPeer.notify('error', err)
+		.catch(() => { });
+
+	tmpPeer.close();
 }
 
 function checkPeerState({ peerId }) {
@@ -671,26 +717,12 @@ function getMediasoupWorker() {
 /**
  * Get a Room instance (or create one if it does not exist).
  */
-async function getOrCreateRoom({ roomId, conMode, category }) {
-	if (conMode == null) {
-		throw new Error('连接模式不合法，请检查后重试');
-	}
-
-	// validate roomId
-	if (!roomId) {
-		throw new Error('房间号不能为空');	
-	}
-
-	// roomId is number and length is 6
-	if (!/^\d{6}$/.test(roomId)) {
-		throw new Error('房间号不合法，请检查后重试');
-	}
-
+async function getOrCreateRoom({ roomId, category }) {
 	let room = rooms.get(roomId);
 
 	// If the Room does not exist create a new one.
 	// connection mode, 0=>create room , 1=>join room
-	if (conMode === 0 && !room) {
+	if (!room) {
 		logger.info('creating a new Room [roomId:%s] [roomCategory:%s]', roomId, category);
 
 		const mediasoupWorker = getMediasoupWorker();
@@ -698,14 +730,6 @@ async function getOrCreateRoom({ roomId, conMode, category }) {
 
 		rooms.set(roomId, room);
 		room.on('close', () => rooms.delete(roomId));
-	}
-
-	if (conMode === 1 && !room) {
-		throw new Error('加入房间不存在，请检查后重试');
-	}
-
-	if (room._category != category) {
-		throw new Error('加入房间失败，成员所属应用与房间所属应用不匹配');
 	}
 
 	return room;
