@@ -840,7 +840,11 @@ class Room extends EventEmitter {
 							device: joinedPeer.data.device
 						}));
 
-					accept({ peers: peerInfos });
+					const roomInfo = {
+						roomId: this._roomId,
+						createTime: this._createTime
+					};
+					accept({ room: roomInfo, peers: peerInfos });
 
 					// Mark the new Peer as joined.
 					peer.data.joined = true;
