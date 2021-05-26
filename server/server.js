@@ -614,15 +614,15 @@ async function runProtooWebSocketServer() {
 					}
 
 					if (conMode === 0 && room._getJoinedPeers().length !== 0) {
-						logger.error('房间号已被占用，新建房间失败');
+						logger.error('房间号已被占用，新建失败');
 
-						conError = '房间号已被占用，新建房间失败';
+						conError = '房间号已被占用，新建失败';
 					}
 
-					if (conMode === 1 && room._getJoinedPeers().length === 0) {
-						logger.error('房间号无效，加入房间失败');
+					if (conMode == 1 && room._getJoinedPeers().length == 0) {
+						logger.error('房间不存在，加入失败');
 
-						conError = '房间号无效，加入房间失败';
+						conError = '房间不存在，加入失败';
 					}
 
 					// validate roomId
