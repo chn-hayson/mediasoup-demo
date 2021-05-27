@@ -607,19 +607,27 @@ async function runProtooWebSocketServer() {
 					
 					let conError;
 
+					const joinedPeersCount = room._getJoinedPeers().length;
+
+					if (joinedPeersCount >= 25) {
+						logger.error('房间人数已满，至多25人，加入失败');
+
+						conError = '房间人数已满，至多25人，加入失败';
+					}
+
 					if (conMode == null) {
 						logger.error('连接模式不合法，请检查后重试');
 
 						conError = '连接模式不合法，请检查后重试';
 					}
 
-					if (conMode === 0 && room._getJoinedPeers().length !== 0) {
+					if (conMode === 0 && joinedPeersCount.length !== 0) {
 						logger.error('房间号已被占用，新建失败');
 
 						conError = '房间号已被占用，新建失败';
 					}
 
-					if (conMode == 1 && room._getJoinedPeers().length == 0) {
+					if (conMode == 1 && joinedPeersCount.length == 0) {
 						logger.error('房间不存在，加入失败');
 
 						conError = '房间不存在，加入失败';
