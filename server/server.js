@@ -615,19 +615,19 @@ async function runProtooWebSocketServer() {
 						conError = '房间人数已满，至多25人，加入失败';
 					}
 
-					if (conMode == null) {
+					if (conMode == null || (conMode != 0 && conMode != 1)) {
 						logger.error('连接模式不合法，请检查后重试');
 
 						conError = '连接模式不合法，请检查后重试';
 					}
 
-					if (conMode === 0 && joinedPeersCount.length !== 0) {
+					if (conMode == 0 && joinedPeersCount !== 0) {
 						logger.error('房间号已被占用，新建失败');
 
 						conError = '房间号已被占用，新建失败';
 					}
 
-					if (conMode == 1 && joinedPeersCount.length == 0) {
+					if (conMode == 1 && joinedPeersCount === 0) {
 						logger.error('房间不存在，加入失败');
 
 						conError = '房间不存在，加入失败';
