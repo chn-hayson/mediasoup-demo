@@ -150,7 +150,7 @@ module.exports =
 	{
 		protocol: 'http',
 		ip: '192.168.1.113',
-		port: '19080',
+		port: '18080',
 		rootPath: '/tornado',
 		api: '/identity/refresh',
 	}

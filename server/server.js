@@ -553,11 +553,17 @@ async function authentication(accessToken) {
 			},
 		};
 		request.post(options, function (error, response, body) {
-			body = JSON.parse(body);
+			try {
+				body = JSON.parse(body);
 			if (error || response.statusCode != 200 || body.status == "error") {
 				reject("用户身份认证失败，请重试");
 			} else {
 				resolve(body.data);
+			}
+			} catch (error) {
+				logger.error(error);
+				
+				reject(error);
 			}
 		});
 	})
