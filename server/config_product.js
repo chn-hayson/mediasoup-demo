@@ -11,7 +11,7 @@
 const os = require('os');
 
 process.env.MEDIASOUP_LISTEN_IP = '172.16.8.12';
-process.env.MEDIASOUP_ANNOUNCED_IP = '172.16.8.12';
+process.env.MEDIASOUP_ANNOUNCED_IP = '117.187.244.29';
 module.exports =
 {
 	// Listening hostname (just for `gulp live` task).
@@ -54,8 +54,8 @@ module.exports =
 					'svc',
 					'sctp'
 				],
-			rtcMinPort: process.env.MEDIASOUP_MIN_PORT || 40000,
-			rtcMaxPort: process.env.MEDIASOUP_MAX_PORT || 40020
+			rtcMinPort: 40000,
+			rtcMaxPort: 40020
 		},
 		// mediasoup Router options.
 		// See https://mediasoup.org/documentation/v3/mediasoup/api/#RouterOptions
