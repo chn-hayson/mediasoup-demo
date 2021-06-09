@@ -25,8 +25,8 @@ module.exports =
 		// NOTE: Set your own valid certificate files.
 		tls:
 		{
-			cert: process.env.HTTPS_CERT_FULLCHAIN || `/etc/letsencrypt/live/gwjk.gztt.top/fullchain.pem`,
-			key: process.env.HTTPS_CERT_PRIVKEY || `/etc/letsencrypt/live/gwjk.gztt.top/privkey.pem`
+			cert: process.env.HTTPS_CERT_FULLCHAIN || `/etc/letsencrypt/live/lmtone.gztt.top/fullchain.pem`,
+			key: process.env.HTTPS_CERT_PRIVKEY || `/etc/letsencrypt/live/lmtone.gztt.top/privkey.pem`
 		}
 	},
 	// mediasoup settings.
@@ -55,7 +55,7 @@ module.exports =
 					'sctp'
 				],
 			rtcMinPort: 40000,
-			rtcMaxPort: 40020
+			rtcMaxPort: 40100
 		},
 		// mediasoup Router options.
 		// See https://mediasoup.org/documentation/v3/mediasoup/api/#RouterOptions
